@@ -5,10 +5,17 @@ if($connection === false){
     $errors[] = mysqli_connect_error();
     exit;
 }else{
-$query = "SELECT id, username, email, password, profile_photo FROM `mas`";
+$query = "SELECT id, username, email, password, profile_photo FROM `mas` ORDER BY id DESC";
 $result = mysqli_query($connection, $query);
 $data = mysqli_fetch_all($result, 1);
- //var_dump($data);die();
+}
+$query_string = '';
+if(isset($_GET['search'])){
+    $query_string = trim($_GET['query']);
+
+    $query = "SELECT id, username, email, password, profile_photo FROM `mas` WHERE username LIKE '%$query_string%' OR email LIKE '%$query_string%' ORDER BY id DESC";
+    $result = mysqli_query($connection, $query);
+    $data = mysqli_fetch_all($result, 1);
 }
 ?>
 <!doctype html>
@@ -24,10 +31,22 @@ $data = mysqli_fetch_all($result, 1);
 </head>
 
 <body class="text-center">
-
+<form action="" method="get" class="form form-horizontal">
+    <label for=input">Search</label>
+    <br>
+    <input class="form-control" type="text" name="query"
+           placeholder="explore into info" value = "<?php echo $query_string ?? '';?>" autofocus>
+    <button class="btn btn-info btn-block" type="submit" name="search">Search</button>
+</form>
+<?php if(!empty($query_string)){ ?>
+    <div class="alert alert-info">
+        You have search for <i><?php echo $query_string; ?></i>
+    </div>
+<?php } ?>
+<?php if(count($data)>0){?>
 <table class="table table-bordered">
     <thead>
-    <tr>
+    <tr style="color : saddlebrown">
         <th>ID</th>
         <th>Username</th>
         <th>Email</th>
@@ -39,16 +58,29 @@ $data = mysqli_fetch_all($result, 1);
     <?php foreach($data as $user) { ?>
     <tr>
         <td><?php echo $user['id']; ?></td>
-        <td><?php echo $user['username']; ?></td>
-        <td><?php echo $user['email']; ?></td>
+
+        <td>
+            <?php echo !empty($query_string) ? str_replace($query_string, '<span style = "color: #ff0000;">' . $query_string . '</span>', $user['username']) : $user['username'];
+            ?>
+        </td>
+
+        <td>
+            <?php echo !empty($query_string) ? str_replace($query_string, '<span style = "color: #ff0000;">' . $query_string . '</span>', $user['email']) : $user['email'];
+            ?>
+        </td>
+
         <td><img src="profile_photo/<?php echo $user['profile_photo']; ?>" width="70px"></td>
-        <td><a href="edit.php?id=<?php echo $user['id']; ?>" class="label label-info">Edit</a></td>
+        <td><a href="edit.php?id=<?php echo $user['id']; ?>" class="label label-info" style="background-color : darkgreen">Edit</a>
+            <a href="delete.php?id=<?php echo $user['id']; ?>" class="label label-danger" onclick="confirm('Are you sure')" style="background-color : red">Delete</a>
+        </td>
     </tr>
     <?php } ?>
     </tbody>
 </table>
-
-
-
+<?php } else { ?>
+<div class="alert alert-warning">
+    Sorry! No data found.
+</div>
+<?php } ?>
 </body>
 </html>

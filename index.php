@@ -48,9 +48,9 @@ if(isset($_POST['register'])){
         }
 
         //profile_photo upload
-        $file_data =explode('.', $profile_photo['name']);
-        $file_ext = end($file_data);
-        if(!in_array($file_ext, ['jpg'.'png'], true)){
+        $file_info =explode('.', $profile_photo['name']);
+        $file_ext = end($file_info);
+        if(!in_array($file_ext, ['jpg','png'], true)){
             $errors[]= 'File must be a valid image profile_photo';
         }
 

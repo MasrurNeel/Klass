@@ -17,6 +17,10 @@ if($connection === false){
 }
 
 if(isset($_POST['update'])){
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $profile_photo = $_FILES['file'];
+
     if(empty($username)){
         $errors['username'] = 'You must enter your username';
     }
@@ -24,12 +28,31 @@ if(isset($_POST['update'])){
         $errors['email'] = 'You must enter a valid email';
     }
     if(empty($errors)){
-        
+        if(!empty($profile_photo['name'])){
+            $file_info =explode('.', $profile_photo['name']);
+            $file_ext = end($file_info);
+
+            if(!in_array($file_ext, ['jpg','png'], true)){
+                $errors['profile_photo']= 'File must be a valid image profile_photo';
+            }
+            if(!isset($errors['profile_photo'])){
+                $new_file_name =uniqid('pp_', true). '.' . $file_ext;
+                move_uploaded_file($profile_photo['tmp_name'],'profile_photo/' . $new_file_name);
+
+                $query ="UPDATE mas SET profile_photo = '$new_file_name' WHERE id = '$id'";
+                $result = mysqli_query($connection, $query);
+            }
+        }
+        $query ="UPDATE mas SET username = '$username', email = '$email' WHERE id = '$id'";
+        $result = mysqli_query($connection, $query);
+
+        if($result === true){
+            $success = "User data updated";
+        }else{
+            $errors[] = mysqli_error($connection);
+        }
     }
 }
-
-
-
 if(!isset($errors['connection'])){
     $query = "SELECT username, email, profile_photo FROM mas WHERE id='$id'";
     $result = mysqli_query($connection, $query);
