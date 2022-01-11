@@ -1,82 +1,99 @@
 <?php
+session_start();
+include 'pdo.php';
 $errors =[];
-
-//var_dump($_POST);
-
 if(isset($_POST['register'])){
     $username = trim($_POST['username']);
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
     $profile_photo = $_FILES['file'];
-
-    //var_dump($profile_photo);
-    //exit();
-
+    $message = '';
+    $type = '';
     //validation
     if(empty($username)){
-        $errors['username'] = 'You must enter your username';
+        $type = 'data error';
+        $message = 'You must enter your username';
     }
     if(empty($email)){
-        $errors['email'] = 'You must enter a valid email';
+        $type = 'data error';
+        $message = 'You must enter a valid email';
     }
     if(empty($password)){
-        $errors['password'] = 'You must enter a password';
+        $type = 'data error' ;
+        $message = 'You must enter a password';
     }
     if(empty($profile_photo['name'])){
-        $errors['profile_photo'] = 'File must be provided';
+        $type = 'data error';
+        $message = 'File must be provided';
     }
     if(filter_var($email, FILTER_VALIDATE_EMAIL)=== false){
-        $errors['email'] = "You must enter a valid email";
+        $type = 'data error';
+        $message = 'email must be provided';
     }
     if(strlen($password)<6){
-        $errors['password'] = 'You must enter a password containing at least 6 chars.';
+        $type = 'format error';
+        $message = 'password should be in <6 chars';
     }
-
     $password = password_hash($password, PASSWORD_BCRYPT);
 
-    //var_dump($errors);
-    if(empty($errors)){
-
+    if($type == ''){
         //mysql connection
+        //db connection
         $connection = mysqli_connect('localhost', 'root', '', 'llc_php');
-
-        //var_dump($connection);
-
-        if($connection === false){
+        if($connection === false) {
             $errors = mysqli_connect_error();
             exit();
         }
-
-        //profile_photo upload
+            //profile_photo upload
         $file_info =explode('.', $profile_photo['name']);
         $file_ext = end($file_info);
         if(!in_array($file_ext, ['jpg','png'], true)){
             $errors[]= 'File must be a valid image profile_photo';
         }
-
         $new_file_name =uniqid('pp_', true). '.' . $file_ext;
         $upload = move_uploaded_file($profile_photo['tmp_name'],'profile_photo/' . $new_file_name);
-
-        if($upload){
+        if($upload) {
             //do insert
-            $sql = "INSERT INTO `mas` (`username`, `email`, `password`, `profile_photo`) VALUES ('$username', '$email', '$password', '$new_file_name')";
-            $insert = mysqli_query($connection, $sql);
-
-            //var_dump($insert);
-
-            if($insert === true){
-                $success ='User inserted successfully';
-            }else{
-                die(mysqli_error($connection));
+           include 'connection.php';
+            $sql = "INSERT INTO `mas` (`username`, `email`, `password`, `profile_photo`) VALUES (:username, :email,:password, :profile_photo)";
+            //$insert = mysqli_query($connection, $sql);
+            $stmt = $connection->prepare($sql);
+            $stmt->bindParam(':username',$username);
+            $stmt->bindParam(':email',$email);
+            $stmt->bindParam(':password',$password);
+            $stmt->bindParam(':profile_photo',$new_file_name);
+            if($stmt->execute()===false){
+               $errors[]= 'user was not inserted';
+            }else {
+                $success = 'user inserted succesfully';
             }
-
-            //die();
-            //mysqli_stmt_execute($sql);
-
-        }else{
-            $errors[] = 'profile_photo was not uploaded';
+            }else{
+            $errors[]='File was not uploaded. Please try again';
         }
-    }
+        }
+//            if ($insert === true) {
+//                $message = 'profile_photo was uploaded';
+//                $type = 'success';
+//
+//            } else {
+//                $message = 'profile_photo was not uploaded';
+//                $type = 'warning';
+//            }
+//        }
+//        else{
+//            $message = 'File upload was not completed';
+//            $type = 'warning2';
+//        }
+//        $_SESSION['message'] = $message;
+//        $_SESSION['type']  = $type;
+//
+//        header('Location: users.php');
+//        exit();
+//    }
+
+
+    //header('Location: users.php');
+    //exit();
 }
 ?>
 <!doctype html>
@@ -119,7 +136,7 @@ if(isset($success)){
     ?>
     <br>
 
-    <label for=inputEmail">Email Address</label>
+    <label for="inputEmail">Email Address</label>
     <br>
     <input class="form-control" type="email" name="email"
            placeholder="enter your email"

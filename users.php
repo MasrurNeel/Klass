@@ -1,21 +1,39 @@
 <?php
-    $connection = mysqli_connect('localhost', 'root', '', 'llc_php');
-
-if($connection === false){
-    $errors[] = mysqli_connect_error();
-    exit;
-}else{
-$query = "SELECT id, username, email, password, profile_photo FROM `mas` ORDER BY id DESC";
-$result = mysqli_query($connection, $query);
-$data = mysqli_fetch_all($result, 1);
+session_start();
+session_start();
+if(!isset($_SESSION['id'], $_SESSION['username'])){
+    header('Location: login.php');
 }
+include_once 'connection.php';
+  //$connection = mysqli_connect('localhost', 'root', '', 'llc_php');
+//
+//if($connection === false){
+//    $errors[] = mysqli_connect_error();
+//    exit;
+//}else{
+$query = "SELECT id, username, email, password, profile_photo FROM `mas`";
+$stmt = $connection->prepare($query);
+$stmt->execute();
+$data = $stmt->fetchAll();
+
+//$result = mysqli_query($connection, $query);
+//$data = mysqli_fetch_all($result, 1);
+
 $query_string = '';
 if(isset($_GET['search'])){
     $query_string = trim($_GET['query']);
 
-    $query = "SELECT id, username, email, password, profile_photo FROM `mas` WHERE username LIKE '%$query_string%' OR email LIKE '%$query_string%' ORDER BY id DESC";
-    $result = mysqli_query($connection, $query);
-    $data = mysqli_fetch_all($result, 1);
+    $query = "SELECT id, username, email, password, profile_photo FROM `mas` WHERE username LIKE ':query_string' OR email LIKE ':$query_string'";
+     $stmt = $connection->prepare($query);
+     $stmt->bindValue(':query_string', '%' . $query_string . '%');
+     $stmt->execute();
+    $data = $stmt->fetchAll();
+//    $result = mysqli_query($connection, $query);
+//    $data = mysqli_fetch_all($result, 1);
+
+    if(isset($_SESSION['message'], $_SESSION['type'])) {
+        echo $_SESSION['message'];
+    }
 }
 ?>
 <!doctype html>
@@ -35,7 +53,7 @@ if(isset($_GET['search'])){
     <label for=input">Search</label>
     <br>
     <input class="form-control" type="text" name="query"
-           placeholder="explore into info" value = "<?php echo $query_string ?? '';?>" autofocus>
+           placeholder="explore into info" value = "<?php echo $query_string ? : '';?>" autofocus>
     <button class="btn btn-info btn-block" type="submit" name="search">Search</button>
 </form>
 <?php if(!empty($query_string)){ ?>
@@ -46,7 +64,7 @@ if(isset($_GET['search'])){
 <?php if(count($data)>0){?>
 <table class="table table-bordered">
     <thead>
-    <tr style="color : saddlebrown">
+    <tr style="color : ">
         <th>ID</th>
         <th>Username</th>
         <th>Email</th>
@@ -82,5 +100,6 @@ if(isset($_GET['search'])){
     Sorry! No data found.
 </div>
 <?php } ?>
+//<?php unset($_SESSION['message'], $_SESSION['type']); ?>
 </body>
 </html>

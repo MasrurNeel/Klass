@@ -1,4 +1,5 @@
 <?php
+session_start();
 $errors =[];
 
 //var_dump($_POST);
@@ -15,22 +16,30 @@ if(isset($_POST['login'])){
         $errors['password'] = 'You must enter a password';
     }
 
-    if(empty($errors)){
-        $connection = mysqli_connect('localhost', 'root', '', 'llc_php');
+    if(empty($errors)) {
+        include 'connection.php';
+        //$connection = mysqli_connect('localhost', 'root', '', 'llc_php');
 
-        if($connection === false){
-            $errors[] = mysqli_connect_error();
-            exit;
-        }else{
-            $query = "SELECT id, password FROM `mas` WHERE `username` = '$identifier' OR `email` = '$identifier'";
-            $result = mysqli_query($connection, $query);
-            $data = mysqli_fetch_assoc($result);
+        $query = "SELECT id, password FROM `mas` WHERE `username` :$identifier OR `email` = :identifier";
+        $stmt = $connection->prepare($query);
+        $stmt->bindParam(':identifier', $identifier);
+        $stmt->execute();
+//            $result = mysqli_query($connection, $query);
+//            $data = mysqli_fetch_assoc($result);
 
-            if(mysqli_num_rows($result) === 1){
-               if(password_verify($password, $data['password'])){
-                  $success = "You have been logged in";
-               }
-            }else {
+        if ($stmt->rowCount()===0) {
+            $errors[] = 'Users not found';
+        } else {
+            $data = $stmt->fetch();
+
+            if (password_verify($password, $data['password'])) {
+                $_SESSION['id'] = $data['id'];
+                $_SESSION['username'] =$data['username'];
+                $_SESSION['message'] = 'Logged in successfully';
+
+                header('Location: dashboard.php');
+                $success = "You have been logged in";
+            } else {
                 $errors[] = 'Wrong Password';
             }
         }
